@@ -1,0 +1,38 @@
+
+
+GET http://localhost:7777/concepts
+
+###
+
+POST http://localhost:7777/concept
+Content-Type: application/json
+
+{
+    "concept_name": "Haemogloaaasasbinghg (FBC)",
+    "domain_id": "Measurement",
+    "vocabulary_id": "GSTT",
+    "concept_class_id": "Observable Enastity",
+    "concept_code": "sakdasdkdsak",
+    "maps_to_concept_id": 37208644
+}
+
+###
+GET http://localhost:7777/concept/2000000000
+
+### 
+GET http://localhost:7777/concept/2000000000/target
+
+###
+GET http://localhost:7777/concept_relationships
+
+###
+DELETE http://localhost:7777/concept/2000000002
+
+###
+PATCH http://localhost:7777/concept/2000000002
+Content-Type: application/json
+
+{
+    "concept_id": 3
+}
+
