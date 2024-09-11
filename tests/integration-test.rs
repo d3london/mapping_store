@@ -15,13 +15,13 @@ const DB_PASSWORD: &str = "postgres";
 /// The container needs to stay alive for the duration of the test.
 /// We will return the container along with the connection details.
 async fn setup_postgres_test_container() -> (ContainerAsync<GenericImage>, String, u16) {
-    println!("  \x1b[93mIntegration:\x1b[0m Spinning up test Postgres database.");
+    println!("        \x1b[93mSetup:\x1b[0m Spinning up test Postgres database.");
 
     let container = GenericImage::new("postgres", "16.3")
         .with_wait_for(WaitFor::message_on_stdout(
             "database system is ready to accept connections",
         ))
-        .with_wait_for(WaitFor::seconds(10))
+        .with_wait_for(WaitFor::seconds(5))
         .with_env_var("POSTGRES_DB".to_string(), DB_NAME)
         .with_env_var("POSTGRES_USER".to_string(), DB_USER)
         .with_env_var("POSTGRES_PASSWORD".to_string(), DB_PASSWORD)
@@ -29,7 +29,7 @@ async fn setup_postgres_test_container() -> (ContainerAsync<GenericImage>, Strin
         .await
         .expect("Failed to start Postgres");
 
-    println!("  \x1b[93mIntegration:\x1b[0m Postgres container created and ready.");
+    println!("        \x1b[93mSetup:\x1b[0m Postgres container created and ready.");
 
     let host = container.get_host().await.expect("Get postgres host");
     let port = container
@@ -55,7 +55,7 @@ async fn create_test_instance() -> (ContainerAsync<GenericImage>, SocketAddr) {
         .await
         .expect("Get postgres pool");
 
-    println!("  \x1b[93mIntegration:\x1b[0m Migrating database.");
+    println!("        \x1b[93mSetup:\x1b[0m Migrating database.");
     sqlx::migrate!("./tests/data")
         .run(&pool)
         .await
@@ -76,7 +76,24 @@ async fn integration_tests() {
     let client =
         hyper_util::client::legacy::Builder::new(hyper_util::rt::TokioExecutor::new()).build_http();
 
-    println!("  \x1b[93mIntegration:\x1b[0m Querying empty concepts...");
+    print!("\n  \x1b[93mIntegration:\x1b[0m Check heartbeat ... ");
+
+    // Testing GET request
+    let response = client
+        .request(
+            Request::builder()
+                .uri(format!("http://{addr}/heartbeat"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    println!("ok");
+
+    print!("  \x1b[93mIntegration:\x1b[0m Querying empty concepts ... ");
 
     // Testing GET request
     let response = client
@@ -90,6 +107,10 @@ async fn integration_tests() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::OK);
+    let resp = convert_body_to_string(response).await;
+    assert_eq!(resp, "[]");
+
+    println!("ok");
 
     // Create an example concept for the POST request
     let example_concept = omop_types::MappedConcept {
@@ -104,6 +125,7 @@ async fn integration_tests() {
     // Serialize the concept to JSON
     let concept_json = serde_json::to_string(&example_concept).unwrap();
 
+    print!("  \x1b[93mIntegration:\x1b[0m Creating new mapped concept ... ");
     // Send the POST request with JSON body
     let response = client
         .request(
@@ -118,10 +140,17 @@ async fn integration_tests() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::OK);
-
     let new_concept_string = convert_body_to_string(response).await;
 
-    let _re: omop_types::NewConceptId = serde_json::from_str(&new_concept_string).unwrap();
+    let new_concept_id: omop_types::NewConceptId =
+        serde_json::from_str(&new_concept_string).unwrap();
+
+    assert!(new_concept_id.concept_id.is_some());
+
+    println!("ok");
+
+    // _pg_container goes out of scope here, therefore invoking Drop()
+    println!("\n        \x1b[93mSetup:\x1b[0m Destroying Postgres container.\n");
 }
 
 async fn convert_body_to_string(body: Response<Incoming>) -> String {
