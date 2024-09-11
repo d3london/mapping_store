@@ -21,3 +21,11 @@ tokio = { version = "1.40.0", features = ["macros", "rt-multi-thread"] }
 tower = { version = "0.5.0", features = ["util"] }
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
+
+[dev-dependencies]
+testcontainers = { version = "0.22.0", features = ["properties-config"] }
+hyper-util = { version = "0.1", features = [
+    "client",
+    "http1",
+    "client-legacy",
+] }
