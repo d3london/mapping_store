@@ -1,10 +1,8 @@
 use axum::body::Body;
-use core::time;
 use hyper::{Request, StatusCode};
 use mapping_manager::create_app;
-use sqlx::migrate::Migrator;
 use sqlx::postgres::PgConnectOptions;
-use std::{net::SocketAddr, thread};
+use std::net::SocketAddr;
 use testcontainers::{core::WaitFor, runners::AsyncRunner, ContainerAsync, GenericImage, ImageExt};
 
 const DB_NAME: &str = "postgres";
