@@ -15,6 +15,8 @@ const DB_PASSWORD: &str = "postgres";
 /// The container needs to stay alive for the duration of the test.
 /// We will return the container along with the connection details.
 async fn setup_postgres_test_container() -> (ContainerAsync<GenericImage>, String, u16) {
+    println!("  \x1b[93mIntegration:\x1b[0m Spinning up test Postgres database.");
+
     let container = GenericImage::new("postgres", "16.3")
         .with_wait_for(WaitFor::message_on_stdout(
             "database system is ready to accept connections",
@@ -26,6 +28,8 @@ async fn setup_postgres_test_container() -> (ContainerAsync<GenericImage>, Strin
         .start()
         .await
         .expect("Failed to start Postgres");
+
+    println!("  \x1b[93mIntegration:\x1b[0m Postgres container created and ready.");
 
     let host = container.get_host().await.expect("Get postgres host");
     let port = container
@@ -51,6 +55,7 @@ async fn create_test_instance() -> (ContainerAsync<GenericImage>, SocketAddr) {
         .await
         .expect("Get postgres pool");
 
+    println!("  \x1b[93mIntegration:\x1b[0m Migrating database.");
     sqlx::migrate!("./tests/data")
         .run(&pool)
         .await
@@ -65,11 +70,13 @@ async fn create_test_instance() -> (ContainerAsync<GenericImage>, SocketAddr) {
 }
 
 #[tokio::test]
-async fn test_route() {
+async fn integration_tests() {
     let (_pg_container, addr) = create_test_instance().await;
 
     let client =
         hyper_util::client::legacy::Builder::new(hyper_util::rt::TokioExecutor::new()).build_http();
+
+    println!("  \x1b[93mIntegration:\x1b[0m Querying empty concepts...");
 
     // Testing GET request
     let response = client
@@ -114,9 +121,7 @@ async fn test_route() {
 
     let new_concept_string = convert_body_to_string(response).await;
 
-    let re: omop_types::NewConceptId = serde_json::from_str(&new_concept_string).unwrap();
-
-    dbg!(re);
+    let _re: omop_types::NewConceptId = serde_json::from_str(&new_concept_string).unwrap();
 }
 
 async fn convert_body_to_string(body: Response<Incoming>) -> String {
