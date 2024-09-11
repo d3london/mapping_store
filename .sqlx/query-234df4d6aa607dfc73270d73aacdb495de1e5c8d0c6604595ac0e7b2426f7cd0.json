@@ -1,0 +1,50 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason\n        FROM mappings.concept_relationship\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "concept_id_1",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "concept_id_2",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "relationship_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "valid_start_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 4,
+        "name": "valid_end_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 5,
+        "name": "invalid_reason",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "234df4d6aa607dfc73270d73aacdb495de1e5c8d0c6604595ac0e7b2426f7cd0"
+}

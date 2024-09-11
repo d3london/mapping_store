@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT * FROM omop_vocab.concept\n        WHERE \n            concept_id = $1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "concept_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "concept_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "domain_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "vocabulary_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "concept_class_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "standard_concept",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "concept_code",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "valid_start_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 8,
+        "name": "valid_end_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 9,
+        "name": "invalid_reason",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "7a485904bb2b1f89717d8af32cc447a347b569bdc5b3de2007b9906e6f20d7ea"
+}
