@@ -1,4 +1,4 @@
-use axum::body::{Body};
+use axum::body::Body;
 use http_body_util::BodyExt;
 use hyper::{body::Incoming, header, Request, Response, StatusCode};
 use mapping_manager::create_app;
