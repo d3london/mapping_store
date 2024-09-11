@@ -18,12 +18,14 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: setup toolchain
+        if: ${{ !github.event.pull_request.draft }}
         run: rustup toolchain install stable --profile minimal
 
       - name: rustfmt
         run: cargo fmt --all -- --check
 
       - name: cargo test
+        if: ${{ !github.event.pull_request.draft }}
         run: cargo test --all-features
 
     #   - name: clippy
