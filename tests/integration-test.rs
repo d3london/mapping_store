@@ -1,9 +1,12 @@
-use axum::body::Body;
-use hyper::{Request, StatusCode};
+use axum::body::{Body};
+use http_body_util::BodyExt;
+use hyper::{body::Incoming, header, Request, Response, StatusCode};
 use mapping_manager::create_app;
 use sqlx::postgres::PgConnectOptions;
 use std::net::SocketAddr;
 use testcontainers::{core::WaitFor, runners::AsyncRunner, ContainerAsync, GenericImage, ImageExt};
+
+use mapping_manager::omop_types;
 
 const DB_NAME: &str = "postgres";
 const DB_USER: &str = "postgres";
@@ -47,7 +50,10 @@ async fn create_test_instance() -> (ContainerAsync<GenericImage>, SocketAddr) {
         .await
         .expect("Get postgres pool");
 
-    sqlx::migrate!().run(&pool).await.expect("Migrate database"); // defaults to "./migrations"
+    sqlx::migrate!("./tests/data")
+        .run(&pool)
+        .await
+        .expect("Setting up test database DDL/DML");
 
     let app = create_app(pool).await;
     let listener = tokio::net::TcpListener::bind(&"localhost:0").await.unwrap();
@@ -64,6 +70,7 @@ async fn test_route() {
     let client =
         hyper_util::client::legacy::Builder::new(hyper_util::rt::TokioExecutor::new()).build_http();
 
+    // Testing GET request
     let response = client
         .request(
             Request::builder()
@@ -76,5 +83,49 @@ async fn test_route() {
 
     assert_eq!(response.status(), StatusCode::OK);
 
-    // The container will be dropped here, which will stop it
+    // Create an example concept for the POST request
+    let example_concept = omop_types::MappedConcept {
+        concept_name: "FBC_Haemoglobin".to_string(),
+        domain_id: "LIMS.BloodResults".to_string(),
+        vocabulary_id: "GSTT".to_string(),
+        concept_class_id: "Observable Entity".to_string(),
+        concept_code: "FBC_Hb_Mass".to_string(),
+        maps_to_concept_id: 37171451,
+    };
+
+    // Serialize the concept to JSON
+    let concept_json = serde_json::to_string(&example_concept).unwrap();
+
+    // Send the POST request with JSON body
+    let response = client
+        .request(
+            Request::builder()
+                .method("POST")
+                .uri(format!("http://{addr}/concept"))
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::from(concept_json))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let new_concept_string = convert_body_to_string(response).await;
+
+    let re: omop_types::NewConceptId = serde_json::from_str(&new_concept_string).unwrap();
+
+    dbg!(re);
+}
+
+async fn convert_body_to_string(body: Response<Incoming>) -> String {
+    String::from_utf8(
+        body.into_body()
+            .collect()
+            .await
+            .expect("Collect bytes from incoming")
+            .to_bytes()
+            .into(),
+    )
+    .expect("Convert bytes to string")
 }
