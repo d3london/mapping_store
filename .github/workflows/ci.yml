@@ -11,7 +11,7 @@ env:
 
 jobs:
   build_and_test:
-    name: Rust project
+    name: Compile and Test Project
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,7 +27,7 @@ jobs:
 
       - name: cargo test
         if: ${{ !github.event.pull_request.draft }}
-        run: cargo test --all-features
+        run: cargo test --all-features -- --nocapture
 
     #   - name: clippy
     #     run: cargo clippy --all --all-features --tests -- -D warnings
