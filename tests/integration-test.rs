@@ -19,6 +19,7 @@ async fn setup_postgres_test_container() -> (ContainerAsync<GenericImage>, Strin
         .with_wait_for(WaitFor::message_on_stdout(
             "database system is ready to accept connections",
         ))
+        .with_wait_for(WaitFor::seconds(10))
         .with_env_var("POSTGRES_DB".to_string(), DB_NAME)
         .with_env_var("POSTGRES_USER".to_string(), DB_USER)
         .with_env_var("POSTGRES_PASSWORD".to_string(), DB_PASSWORD)
