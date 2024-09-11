@@ -9,7 +9,7 @@ use axum::{
 };
 use omop_types::NewConceptId;
 use sqlx::{Acquire, PgPool, Pool, Postgres};
-mod omop_types;
+pub mod omop_types;
 
 /// Used to create axum Router types that can be used elsewhere
 ///

@@ -1,6 +1,6 @@
 //! # Hello World
 //! this is some important stuff
-mod omop_types;
+pub mod omop_types;
 use mapping_manager::create_app;
 
 #[tokio::main]
