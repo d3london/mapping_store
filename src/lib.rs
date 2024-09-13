@@ -14,7 +14,9 @@ pub mod omop_types;
 /// Used to create axum Router types that can be used elsewhere
 ///
 pub async fn create_app(pool: Pool<Postgres>) -> Router {
-    let app = Router::new()
+    
+
+    Router::new()
         .route("/concepts", get(get_concepts))
         .route("/concept", post(new_concept))
         .route(
@@ -29,9 +31,7 @@ pub async fn create_app(pool: Pool<Postgres>) -> Router {
         )
         .route("/concept_relationships", get(get_concept_relationships))
         .route("/heartbeat", get(heartbeat))
-        .with_state(pool);
-
-    app
+        .with_state(pool)
 }
 
 pub async fn get_concepts(State(pool): State<PgPool>) -> impl IntoResponse {
@@ -196,15 +196,15 @@ async fn new_concept(
 
     match query_response {
         Ok(res) => {
-            return (StatusCode::OK, Json(res)).into_response();
+            (StatusCode::OK, Json(res)).into_response()
         }
         Err(sqlx::Error::Database(e)) if e.code().as_deref() == Some("23505") => {
-            return (StatusCode::CONFLICT, "Duplicate entry").into_response()
+            (StatusCode::CONFLICT, "Duplicate entry").into_response()
         }
         Err(_) => {
-            return (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error").into_response()
+            (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error").into_response()
         }
-    };
+    }
 }
 
 async fn delete_concept(State(pool): State<PgPool>, Path(concept_id): Path<i32>) -> Response {

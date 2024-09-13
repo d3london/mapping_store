@@ -1,6 +1,7 @@
 use axum::body::Body;
 use http_body_util::BodyExt;
 use hyper::{body::Incoming, header, Request, Response, StatusCode};
+use hyper_util::client::legacy::connect::HttpConnector;
 use mapping_manager::create_app;
 use sqlx::postgres::PgConnectOptions;
 use std::net::SocketAddr;
@@ -112,6 +113,28 @@ async fn integration_tests() {
 
     println!("ok");
 
+    create_example_source_map(&client, &addr).await;
+
+    // _pg_container goes out of scope here, therefore invoking Drop()
+    println!("\n        \x1b[93mSetup:\x1b[0m Destroying Postgres container.\n");
+}
+
+async fn convert_body_to_string(body: Response<Incoming>) -> String {
+    String::from_utf8(
+        body.into_body()
+            .collect()
+            .await
+            .expect("Collect bytes from incoming")
+            .to_bytes()
+            .into(),
+    )
+    .expect("Convert bytes to string")
+}
+
+async fn create_example_source_map(
+    client: &hyper_util::client::legacy::Client<HttpConnector, Body>,
+    address: &SocketAddr,
+) {
     // Create an example concept for the POST request
     let example_concept = omop_types::MappedConcept {
         concept_name: "FBC_Haemoglobin".to_string(),
@@ -131,7 +154,7 @@ async fn integration_tests() {
         .request(
             Request::builder()
                 .method("POST")
-                .uri(format!("http://{addr}/concept"))
+                .uri(format!("http://{address}/concept"))
                 .header(header::CONTENT_TYPE, "application/json")
                 .body(Body::from(concept_json))
                 .unwrap(),
@@ -145,22 +168,7 @@ async fn integration_tests() {
     let new_concept_id: omop_types::NewConceptId =
         serde_json::from_str(&new_concept_string).unwrap();
 
-    assert!(new_concept_id.concept_id.is_some());
+    assert_eq!(new_concept_id.concept_id.unwrap(), 2_000_000_000);
 
     println!("ok");
-
-    // _pg_container goes out of scope here, therefore invoking Drop()
-    println!("\n        \x1b[93mSetup:\x1b[0m Destroying Postgres container.\n");
-}
-
-async fn convert_body_to_string(body: Response<Incoming>) -> String {
-    String::from_utf8(
-        body.into_body()
-            .collect()
-            .await
-            .expect("Collect bytes from incoming")
-            .to_bytes()
-            .into(),
-    )
-    .expect("Convert bytes to string")
 }
