@@ -122,6 +122,7 @@ async fn integration_tests() {
     create_duplicate_source_concept(&client, &addr).await;
 
     try_to_delete_non_existent_source_concept(&client, &addr).await;
+    delete_valid_concept(&client, &addr).await;
 
     // _pg_container goes out of scope here, therefore invoking Drop()
     println!("\n        \x1b[93mSetup:\x1b[0m Destroying Postgres container.\n");
@@ -267,6 +268,29 @@ async fn try_to_delete_non_existent_source_concept(
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+    println!("ok");
+}
+
+async fn delete_valid_concept(
+    client: &hyper_util::client::legacy::Client<HttpConnector, Body>,
+    address: &SocketAddr,
+) {
+    print!("  \x1b[93mIntegration:\x1b[0m Delete valid concept ... ");
+    // Send the POST request with JSON body
+    let response = client
+        .request(
+            Request::builder()
+                .method("DELETE")
+                .uri(format!("http://{address}/concept/2000000000"))
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
 
     println!("ok");
 }
