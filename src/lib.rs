@@ -237,7 +237,7 @@ async fn delete_concept(State(pool): State<PgPool>, Path(concept_id): Path<i32>)
     sqlx::query!(
         r#"
         UPDATE mappings.concept_relationship
-            SET valid_end_date = now(),
+            SET valid_end_date = NOW(),
                 invalid_reason = 'D'
         WHERE concept_id_1 = $1;
         "#,
