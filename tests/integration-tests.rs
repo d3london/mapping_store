@@ -115,6 +115,13 @@ async fn integration_tests() {
 
     create_incorrect_mapping(&client, &addr).await;
     correct_incorrect_mapping(&client, &addr).await;
+    // Add correction twice to ensure does not break
+    correct_incorrect_mapping(&client, &addr).await;
+
+    // Ensure duplicate entry is ignored
+    create_duplicate_source_concept(&client, &addr).await;
+
+    try_to_delete_non_existent_source_concept(&client, &addr).await;
 
     // _pg_container goes out of scope here, therefore invoking Drop()
     println!("\n        \x1b[93mSetup:\x1b[0m Destroying Postgres container.\n");
@@ -201,6 +208,65 @@ async fn correct_incorrect_mapping(
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::OK);
+
+    println!("ok");
+}
+
+async fn create_duplicate_source_concept(
+    client: &hyper_util::client::legacy::Client<HttpConnector, Body>,
+    address: &SocketAddr,
+) {
+    // Create an example concept for the POST request
+    let example_concept = omop_types::MappedConcept {
+        concept_name: "FBC_Haemoglobin".to_string(),
+        domain_id: "LIMS.BloodResults".to_string(),
+        vocabulary_id: "GSTT".to_string(),
+        concept_class_id: "Observable Entity".to_string(),
+        concept_code: "FBC_Hb_Mass".to_string(),
+        maps_to_concept_id: 37171451,
+    };
+
+    // Serialize the concept to JSON
+    let concept_json = serde_json::to_string(&example_concept).unwrap();
+
+    print!("  \x1b[93mIntegration:\x1b[0m Creating duplicate mapped concept ... ");
+    // Send the POST request with JSON body
+    let response = client
+        .request(
+            Request::builder()
+                .method("POST")
+                .uri(format!("http://{address}/concept"))
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::from(concept_json))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::CONFLICT);
+
+    println!("ok");
+}
+
+async fn try_to_delete_non_existent_source_concept(
+    client: &hyper_util::client::legacy::Client<HttpConnector, Body>,
+    address: &SocketAddr,
+) {
+    print!("  \x1b[93mIntegration:\x1b[0m Try to delete non existent concept ... ");
+    // Send the POST request with JSON body
+    let response = client
+        .request(
+            Request::builder()
+                .method("DELETE")
+                .uri(format!("http://{address}/concept/2000001000"))
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
 
     println!("ok");
 }
