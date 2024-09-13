@@ -113,7 +113,8 @@ async fn integration_tests() {
 
     println!("ok");
 
-    create_example_source_map(&client, &addr).await;
+    create_incorrect_mapping(&client, &addr).await;
+    correct_incorrect_mapping(&client, &addr).await;
 
     // _pg_container goes out of scope here, therefore invoking Drop()
     println!("\n        \x1b[93mSetup:\x1b[0m Destroying Postgres container.\n");
@@ -131,7 +132,7 @@ async fn convert_body_to_string(body: Response<Incoming>) -> String {
     .expect("Convert bytes to string")
 }
 
-async fn create_example_source_map(
+async fn create_incorrect_mapping(
     client: &hyper_util::client::legacy::Client<HttpConnector, Body>,
     address: &SocketAddr,
 ) {
@@ -148,7 +149,7 @@ async fn create_example_source_map(
     // Serialize the concept to JSON
     let concept_json = serde_json::to_string(&example_concept).unwrap();
 
-    print!("  \x1b[93mIntegration:\x1b[0m Creating new mapped concept ... ");
+    print!("  \x1b[93mIntegration:\x1b[0m Creating incorrect mapped concept ... ");
     // Send the POST request with JSON body
     let response = client
         .request(
@@ -169,6 +170,37 @@ async fn create_example_source_map(
         serde_json::from_str(&new_concept_string).unwrap();
 
     assert_eq!(new_concept_id.concept_id.unwrap(), 2_000_000_000);
+
+    println!("ok");
+}
+
+async fn correct_incorrect_mapping(
+    client: &hyper_util::client::legacy::Client<HttpConnector, Body>,
+    address: &SocketAddr,
+) {
+    // Create an example concept for the POST request
+    let new_target_concept_id = omop_types::NewConceptId {
+        concept_id: Some(37208644),
+    };
+
+    // Serialize the concept to JSON
+    let concept_json = serde_json::to_string(&new_target_concept_id).unwrap();
+
+    print!("  \x1b[93mIntegration:\x1b[0m Correct incorrect mapping ... ");
+    // Send the POST request with JSON body
+    let response = client
+        .request(
+            Request::builder()
+                .method("PATCH")
+                .uri(format!("http://{address}/concept/2000000000"))
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::from(concept_json))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
 
     println!("ok");
 }
