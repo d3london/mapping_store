@@ -14,8 +14,6 @@ pub mod omop_types;
 /// Used to create axum Router types that can be used elsewhere
 ///
 pub async fn create_app(pool: Pool<Postgres>) -> Router {
-    
-
     Router::new()
         .route("/concepts", get(get_concepts))
         .route("/concept", post(new_concept))
@@ -195,15 +193,11 @@ async fn new_concept(
     .await;
 
     match query_response {
-        Ok(res) => {
-            (StatusCode::OK, Json(res)).into_response()
-        }
+        Ok(res) => (StatusCode::OK, Json(res)).into_response(),
         Err(sqlx::Error::Database(e)) if e.code().as_deref() == Some("23505") => {
             (StatusCode::CONFLICT, "Duplicate entry").into_response()
         }
-        Err(_) => {
-            (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error").into_response()
-        }
+        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error").into_response(),
     }
 }
 
