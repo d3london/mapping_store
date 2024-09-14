@@ -1,0 +1,76 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT ct.*\n        FROM mappings.concept_relationship cr\n        INNER JOIN omop_vocab.concept ct\n            ON cr.concept_id_2 = ct.concept_id\n        WHERE cr.concept_id_1 = $1\n          AND cr.invalid_reason IS NULL\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "concept_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "concept_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "domain_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "vocabulary_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "concept_class_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "standard_concept",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "concept_code",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "valid_start_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 8,
+        "name": "valid_end_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 9,
+        "name": "invalid_reason",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "9d437bc319a9071d8fde551ecfb67f46e478379aaed304fdfca9fc67122c909f"
+}

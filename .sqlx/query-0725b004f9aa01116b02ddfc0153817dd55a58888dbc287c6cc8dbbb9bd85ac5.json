@@ -1,0 +1,27 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        WITH concept_insert AS (\n            INSERT INTO mappings.concept (concept_name, domain_id, vocabulary_id, concept_class_id,\n                                        concept_code)\n                VALUES ($1, $2, $3, $4, $5)\n                RETURNING concept_id\n            )\n\n        INSERT INTO mappings.concept_relationship (concept_id_1, concept_id_2, relationship_id)\n            VALUES ((SELECT concept_id FROM concept_insert), $6, 'Maps to')\n        RETURNING (SELECT concept_id FROM concept_insert);\n    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "concept_id",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "0725b004f9aa01116b02ddfc0153817dd55a58888dbc287c6cc8dbbb9bd85ac5"
+}

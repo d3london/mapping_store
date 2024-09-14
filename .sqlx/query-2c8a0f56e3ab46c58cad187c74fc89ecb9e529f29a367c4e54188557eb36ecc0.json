@@ -1,0 +1,79 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT * FROM mappings.concept\n        WHERE \n            domain_id = $1\n        AND vocabulary_id = $2\n        AND concept_code = $3\n        AND concept_class_id = $4\n        AND invalid_reason IS NULL\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "concept_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "concept_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "domain_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "vocabulary_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "concept_class_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "standard_concept",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "concept_code",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "valid_start_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 8,
+        "name": "valid_end_date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 9,
+        "name": "invalid_reason",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "2c8a0f56e3ab46c58cad187c74fc89ecb9e529f29a367c4e54188557eb36ecc0"
+}

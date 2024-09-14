@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO mappings.concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date)\n        VALUES ($1, $2, 'Maps to', now(), DATE('2099-12-31'));\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1251921edbdb4066c170add19fc0867cec3e9d9698229316c1f3826902ae7a0d"
+}
