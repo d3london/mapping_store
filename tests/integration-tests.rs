@@ -2,11 +2,11 @@ use axum::body::Body;
 use http_body_util::BodyExt;
 use hyper::{body::Incoming, header, Request, Response, StatusCode};
 use hyper_util::client::legacy::connect::HttpConnector;
-use mapping_manager::create_app;
 use sqlx::postgres::PgConnectOptions;
 use std::net::SocketAddr;
 use testcontainers::{core::WaitFor, runners::AsyncRunner, ContainerAsync, GenericImage, ImageExt};
 
+use mapping_manager::create_app;
 use mapping_manager::omop_types;
 
 const DB_NAME: &str = "postgres";
@@ -22,7 +22,7 @@ async fn setup_postgres_test_container() -> (ContainerAsync<GenericImage>, Strin
         .with_wait_for(WaitFor::message_on_stdout(
             "database system is ready to accept connections",
         ))
-        .with_wait_for(WaitFor::seconds(5))
+        .with_wait_for(WaitFor::seconds(1))
         .with_env_var("POSTGRES_DB".to_string(), DB_NAME)
         .with_env_var("POSTGRES_USER".to_string(), DB_USER)
         .with_env_var("POSTGRES_PASSWORD".to_string(), DB_PASSWORD)
@@ -114,6 +114,7 @@ async fn integration_tests() {
     println!("ok");
 
     create_incorrect_mapping(&client, &addr).await;
+    check_concept_inserted_successfully(&client, &addr).await;
     correct_incorrect_mapping(&client, &addr).await;
     // Add correction twice to ensure does not break
     correct_incorrect_mapping(&client, &addr).await;
@@ -123,6 +124,10 @@ async fn integration_tests() {
 
     try_to_delete_non_existent_source_concept(&client, &addr).await;
     delete_valid_concept(&client, &addr).await;
+    check_concept_deleted(&client, &addr).await;
+    fail_to_get_deleted_concept_target(&client, &addr).await;
+    get_deleted_concept(&client, &addr).await;
+    fail_to_create_invalid_record(&client, &addr).await;
 
     // _pg_container goes out of scope here, therefore invoking Drop()
     println!("\n        \x1b[93mSetup:\x1b[0m Destroying Postgres container.\n");
@@ -182,6 +187,106 @@ async fn create_incorrect_mapping(
     println!("ok");
 }
 
+async fn fail_to_create_invalid_record(
+    client: &hyper_util::client::legacy::Client<HttpConnector, Body>,
+    address: &SocketAddr,
+) {
+    // Create an example concept for the POST request
+    let example_concept = omop_types::MappedConcept {
+        concept_name: "ABadEntry".to_string(),
+        domain_id: "NonExistent".to_string(),
+        vocabulary_id: "GSTT".to_string(),
+        concept_class_id: "Observable Entity".to_string(),
+        concept_code: "FBC_Hb_Mass".to_string(),
+        maps_to_concept_id: 999999, // Invalid target
+    };
+
+    // Serialize the concept to JSON
+    let concept_json = serde_json::to_string(&example_concept).unwrap();
+
+    print!("  \x1b[93mIntegration:\x1b[0m Creating incorrect mapped concept ... ");
+    // Send the POST request with JSON body
+    let response = client
+        .request(
+            Request::builder()
+                .method("POST")
+                .uri(format!("http://{address}/concept"))
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::from(concept_json))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+    println!("ok");
+}
+
+async fn check_concept_inserted_successfully(
+    client: &hyper_util::client::legacy::Client<HttpConnector, Body>,
+    address: &SocketAddr,
+) {
+    print!("  \x1b[93mIntegration:\x1b[0m Check concept inserted as valid ... ");
+    // Send the POST request with JSON body
+    let response = client
+        .request(
+            Request::builder()
+                .method("GET")
+                .uri(format!("http://{address}/concept/2000000000"))
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = convert_body_to_string(response).await;
+    let concept: omop_types::Concept = serde_json::from_str(&body).unwrap();
+
+    let expected_concept = omop_types::Concept {
+        concept_id: 2_000_000_000,
+        concept_name: "FBC_Haemoglobin".to_string(),
+        domain_id: "LIMS.BloodResults".to_string(),
+        vocabulary_id: "GSTT".to_string(),
+        concept_class_id: "Observable Entity".to_string(),
+        concept_code: "FBC_Hb_Mass".to_string(),
+        valid_start_date: chrono::NaiveDate::from(chrono::Utc::now().date_naive()),
+        valid_end_date: chrono::NaiveDate::from_ymd_opt(2099, 12, 31).expect("Last day of 2099"),
+        standard_concept: None,
+        invalid_reason: None,
+    };
+
+    assert_eq!(expected_concept, concept);
+
+    println!("ok");
+}
+
+async fn fail_to_get_deleted_concept_target(
+    client: &hyper_util::client::legacy::Client<HttpConnector, Body>,
+    address: &SocketAddr,
+) {
+    print!("  \x1b[93mIntegration:\x1b[0m Check get deleted concept target fails ... ");
+    // Send the POST request with JSON body
+    let response = client
+        .request(
+            Request::builder()
+                .method("GET")
+                .uri(format!("http://{address}/concept/2000000000/target"))
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+    println!("ok");
+}
+
 async fn correct_incorrect_mapping(
     client: &hyper_util::client::legacy::Client<HttpConnector, Body>,
     address: &SocketAddr,
@@ -230,7 +335,7 @@ async fn create_duplicate_source_concept(
     // Serialize the concept to JSON
     let concept_json = serde_json::to_string(&example_concept).unwrap();
 
-    print!("  \x1b[93mIntegration:\x1b[0m Creating duplicate mapped concept ... ");
+    print!("  \x1b[93mIntegration:\x1b[0m Check duplicate mapped concept fails ... ");
     // Send the POST request with JSON body
     let response = client
         .request(
@@ -291,6 +396,70 @@ async fn delete_valid_concept(
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::OK);
+
+    println!("ok");
+}
+
+async fn get_deleted_concept(
+    client: &hyper_util::client::legacy::Client<HttpConnector, Body>,
+    address: &SocketAddr,
+) {
+    print!("  \x1b[93mIntegration:\x1b[0m Checking concept is deleted ... ");
+    // Send the POST request with JSON body
+    let response = client
+        .request(
+            Request::builder()
+                .method("GET")
+                .uri(format!("http://{address}/concept/2000000000"))
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    println!("ok");
+}
+
+async fn check_concept_deleted(
+    client: &hyper_util::client::legacy::Client<HttpConnector, Body>,
+    address: &SocketAddr,
+) {
+    print!("  \x1b[93mIntegration:\x1b[0m Check concept deleted ... ");
+    // Send the POST request with JSON body
+    let response = client
+        .request(
+            Request::builder()
+                .method("GET")
+                .uri(format!("http://{address}/concept/2000000000"))
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body = convert_body_to_string(response).await;
+    let concept: omop_types::Concept = serde_json::from_str(&body).unwrap();
+
+    let expected_concept = omop_types::Concept {
+        concept_id: 2_000_000_000,
+        concept_name: "FBC_Haemoglobin".to_string(),
+        domain_id: "LIMS.BloodResults".to_string(),
+        vocabulary_id: "GSTT".to_string(),
+        concept_class_id: "Observable Entity".to_string(),
+        concept_code: "FBC_Hb_Mass".to_string(),
+        valid_start_date: chrono::NaiveDate::from(chrono::Utc::now().date_naive()),
+        valid_end_date: chrono::NaiveDate::from(chrono::Utc::now().date_naive()),
+        standard_concept: None,
+        invalid_reason: Some("D".to_string()),
+    };
+
+    assert_eq!(expected_concept, concept);
 
     println!("ok");
 }

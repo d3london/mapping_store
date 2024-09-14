@@ -92,7 +92,7 @@ async fn get_source_concept_target(
     State(pool): State<PgPool>,
     Path(concept_id): Path<i32>,
 ) -> Response {
-    let q = sqlx::query_as!(
+    match sqlx::query_as!(
         omop_types::Concept,
         r#"
         SELECT ct.*
@@ -106,9 +106,13 @@ async fn get_source_concept_target(
     )
     .fetch_one(&pool)
     .await
-    .unwrap();
-
-    (StatusCode::OK, Json(q)).into_response()
+    {
+        Ok(concept) => (StatusCode::OK, Json(concept)).into_response(),
+        Err(sqlx::Error::RowNotFound) => {
+            return (StatusCode::NOT_FOUND, "Concept not found").into_response()
+        }
+        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error").into_response(),
+    }
 }
 
 async fn new_concept(
